@@ -1,130 +1,52 @@
+#----------------------------------------------------------------------------------------
+# File        : Seasonal Risk calendar maps
+# Author      : Farai Marumbwa
+# Email       : fmarumbwa@unicef.org
+# Organisation:Risk Analysis and Preparedness Section- Office of Emergency Programmes , UNICEF 
+# Purpose     : Generation of seasonal risk calendar maps
+#----------------------------------------------------------------------------------------
+
 library(dplyr)
 library(readr)
 #library(tmap)
 library(raster)
 library(rgdal)
-#library(sf)
+library(sf)
 
 ##### Load the csv and shapefile
-cyclone_risk <- read.csv("data/Cyclone_risk.csv")
-# use -c to do the reverse
-cyclone_risk = subset(cyclone_risk, select = c(ISO, Region,Country,Q1.Cyclone.Risk, Q2.Cyclone.Risk,Q3.Cyclone.Risk, Q4.Cyclone.Risk) )
-adm0_wfp<-readOGR("data/shp/Global_bnd_adm0_WFP.shp")
-#adm0_wfp<-st_read("data/shp/Global_bnd_adm0_WFP.shp")
-
-
-# split the different Regions into a list
-library(purrr)
-region_list <- cyclone_risk %>%
-  split(.$Region) 
-
-# Split individual region
-unique(cyclone_risk$Region)
-#"ROSA"   "ESARO"  "ECARO"  "MENARO" "LACRO"  "WCARO"  "EAPRO" 
-cyclone_risk_ROSA <- cyclone_risk %>%
-  filter(Region == "ROSA")
-cyclone_risk_ESARO <- cyclone_risk %>%
-  filter(Region == "ESARO")
-cyclone_risk_ECARO <- cyclone_risk %>%
-  filter(Region == "ECARO")
-cyclone_risk_MENARO <- cyclone_risk %>%
-  filter(Region == "MENARO")
-cyclone_risk_LACRO <- cyclone_risk %>%
-  filter(Region == "LACRO")
-cyclone_risk_WCARO <- cyclone_risk %>%
-  filter(Region == "WCARO")
-cyclone_risk_EAPRO <- cyclone_risk %>%
-  filter(Region == "ESPRO")
-
-#Join seasonal risk data to the shapefile
-# Rename the csv to match shp
-rosa_cyclone_risk <- rosa_cyclone_risk %>%
+cyclone_risk <- read.csv("data/Cyclone_risk.csv")%>%
   rename(iso3 = 1)
-pop_affected = left_join(vuln, pop_affe, by = "iso3")
-
-rosa_cyclone_risk <- joi(adm0_wfp,cyclone_risk_ROSA, by.x="iso3", by.y="ISO")
-
-names(cyclone_risk_ROSA)
-
-plot(rosa_cyclone_risk)
-
-
-
-
-
-#plot(adm0_wfp) # plot shapefile
-
-# Convert the dataframe to shapefile
-adm0_wfp.df <- as.data.frame(adm0_wfp)
-head(adm0_wfp.df,3)
+names(cyclone_risk)
+# use -c to do the reverse
+cyclone_risk <- subset(cyclone_risk, select = c(iso3, Region,Country,Q1.Cyclone.Risk, Q2.Cyclone.Risk,Q3.Cyclone.Risk, Q4.Cyclone.Risk) )
+# good for jointing text files
+adm0_wfp<-read_sf("data/shp/Global_bnd_adm0_WFP_simplify_0.05.shp")
 
 #Join seasonal risk data to the shapefile
-adm0_cyclone_risk <- merge(adm0_wfp,cyclone_risk, by.x="iso3", by.y="ISO")
+adm0_cyclone_risk <- merge(adm0_wfp,cyclone_risk, by.x="iso3", by.y="iso3")
+adm0_cyclone_risk_fin= adm0_cyclone_risk
+unique(adm0_cyclone_risk$Region)
+#"ROSA"   "ESARO"  "ECARO"  "MENARO" "LACRO"  "WCARO"  "EAPRO" 
 
-cyclone_risk_ESARO <- adm0_cyclone_risk %>%
-    filter(Region == "ESARO")
-
-# Convert the dataframe to shapefile
-cyclone_risk_ESARO.df <- as.data.frame(adm0_cyclone_risk) %>%
-  filter(Region == "ESARO")
-
-plot(cyclone_risk_ESARO.df)
-
-forecast_median=p_median%>%
-  drop_na()%>%
-  filter(Quantile == 100,mean_observed_SPI6 != 0)%>%
-  left_join(y=province_district)%>%
-  subset(Province != "NA") %>% # remove province "NA"
-  dplyr::select(Year,Quantile,Province,Area,mean_observed_SPI6,mean_median_Forecasted_SPI6_belowQ)
-head(forecast_median)
-names(forecast_median)
-
-# Ploting the Maps
-#Load packages
+ROSA_cylone_risk <- adm0_cyclone_risk[adm0_cyclone_risk$Region %in% c("ROSA"), ]
+plot(ROSA_cylone_risk)
+ESARO_cylone_risk <- adm0_cyclone_risk[adm0_cyclone_risk$Region %in% c("ESARO"), ]
+plot(ESARO_cylone_risk)
+########################  MAP 2 #################################
 library(tmap)
 library(leaflet)
+tm_shape(adm0_wfp) + tm_fill("iso3")
+tm_shape(ESARO_cylone_risk) + tm_fill("Q1.Cyclone.Risk")
+tm_shape(OA.Census) + tm_fill("Qualification", style = "quantile", palette = "Reds")
 
-
-e
-
-
-library(purrr)
-library(purrr)
-
-a <- mtcars %>%
-  split(.$cyl) 
-
-%>% # from base R
-  map(~ lm(mpg ~ wt, data = .)) %>%
-  map(summary) %>%
-  map_dbl("r.squared")
+# "Q1.Cyclone.Risk" "Q2.Cyclone.Risk" "Q3.Cyclone.Risk" "Q4.Cyclone.Risk"
 
 
 
 
 
 
-d
 
-
-
-
-
-# Library
-library(leaflet)
-
-# Create a color palette for the map:
-mypalette <- colorNumeric( palette="viridis", domain=adm0_wfp$iso3, na.color="transparent")
-#mypalette <- colorNumeric( palette="viridis", domain=adm0_wfp@iso3$POP2005, na.color="transparent")
-mypalette(c(45,43))
-
-# Basic choropleth with leaflet?
-m <- leaflet(world_spdf) %>% 
-  addTiles()  %>% 
-  setView( lat=10, lng=0 , zoom=2) %>%
-  addPolygons( fillColor = ~mypalette(POP2005), stroke=FALSE )
-
-m
 
 
 
